@@ -67,9 +67,34 @@ async function unfollow(username) {
   return result ? { status: result } : { status: 'error', detail: 'not-confirmed' };
 }
 
+// The same read-only requests instagram.com makes when you open your own Followers/Following lists.
+// Only these paths are allowed, and only GET.
+const API_PATH = /^\/api\/v1\/(users\/\d+\/info\/|friendships\/\d+\/(followers|following)\/\?[\w=&%.-]*)$/;
+const IG_APP_ID = '936619743392459'; // public id of the instagram.com web app
+
+async function api(path) {
+  if (!API_PATH.test(path)) return { ok: false, status: 0, error: 'path not allowed' };
+  const res = await fetch(path, { credentials: 'include', headers: { 'x-ig-app-id': IG_APP_ID, 'x-requested-with': 'XMLHttpRequest' } });
+  return { ok: res.ok, status: res.status, data: await res.json().catch(() => null) };
+}
+
+async function whoami() {
+  const id = document.cookie.match(/(?:^|;\s*)ds_user_id=(\d+)/)?.[1];
+  if (!id) return { loggedIn: false };
+  const r = await api(`/api/v1/users/${id}/info/`);
+  const u = r.data?.user;
+  return {
+    loggedIn: true, id, username: u?.username || null, fullName: u?.full_name || '',
+    picture: u?.profile_pic_url || '', followers: u?.follower_count ?? null, following: u?.following_count ?? null,
+  };
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'ping') {
     sendResponse({ path: location.pathname });
+  } else if (msg?.type === 'whoami' || msg?.type === 'api') {
+    (msg.type === 'whoami' ? whoami() : api(String(msg.path || ''))).then(sendResponse, e => sendResponse({ ok: false, status: 0, error: e.message }));
+    return true;
   } else if (msg?.type === 'unfollow') {
     unfollow(String(msg.username || '')).then(sendResponse, e => sendResponse({ status: 'error', detail: e.message }));
     return true;
