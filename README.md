@@ -6,7 +6,9 @@ Ett Chrome-tillägg som visar vilka du följer på Instagram som inte följer di
 
 ## Funktioner
 
-- **Tre listor** från din egen Instagram-export: *Följer inte tillbaka*, *Alla jag följer* och *Följer tillbaka*.
+- **Hämtar automatiskt** vilka du följer och dina följare från kontot du är inloggad på i Chrome. Du ser vilket konto det är (namn, bild, antal följare) och kan uppdatera med en knapp.
+- **Fyra listor:** *Alla jag följer*, *Följer inte tillbaka*, *Mina följare* och *Följer tillbaka*. I *Mina följare* märks de du själv inte följer.
+- **Flera konton.** Loggar du in på ett annat Instagram-konto sparas valen separat för varje konto.
 - **Förhandsvisning med musen.** Håll musen över ett namn så öppnas profilen i ett litet fönster bredvid listan. Du behöver inte öppna några flikar, och eftersom du är inloggad där syns privata konton också.
 - **Behåll eller avfölj** med knappar på varje rad eller med tangenterna `A` och `D`. Filtrera på obesvarade, avfölj, behåll och avföljda.
 - **Autosparning.** Alla val sparas lokalt i webbläsaren.
@@ -23,24 +25,23 @@ Ett Chrome-tillägg som visar vilka du följer på Instagram som inte följer di
 
 Låt mappen ligga kvar. Chrome läser tillägget därifrån.
 
-## Hämta din data från Instagram
+## Så hämtas datan
 
-1. Instagram → Inställningar → Kontocenter → Din information och behörigheter → **Ladda ned din information**.
-2. Välj ditt konto → **Viss information** → kryssa bara i **Följare och följer**.
-3. **Ladda ned till enhet**, format **JSON**, tidsperiod **Hela tiden**.
-4. När Instagram mejlar att filen är klar laddar du ned zip-filen och väljer den i tillägget.
+När appen öppnas går förhandsfönstret till instagram.com och kollar vilket konto som är inloggat. Första gången hämtas listorna automatiskt, sedan när du klickar **Uppdatera**. Är du inte inloggad loggar du in i förhandsfönstret och klickar **Hämta från Instagram**.
 
-Det går också att välja `following.json` och `followers_1.json` direkt, HTML-varianten av exporten, eller en CSV med användarnamn i första kolumnen.
+Hämtningen använder samma läsanrop som instagram.com gör när du själv öppnar dina listor *Följare* och *Följer*, 50 konton per anrop med en kort paus emellan. Den körs i din egen inloggade session. Inga lösenord eller cookies hanteras av tillägget.
+
+**Importera fil i stället:** det går fortfarande att använda Instagrams dataexport (Kontocenter → Din information och behörigheter → Ladda ned din information → Följare och följer, format JSON). Välj zip-filen, `following.json` och `followers_1.json`, eller en CSV med användarnamn i första kolumnen.
 
 ## Integritet
 
-All data läses och sparas lokalt i din webbläsare (`localStorage`). Tillägget skickar ingenting någonstans och använder inga API:er från Instagram. Det öppnar bara vanliga profilsidor i ett fönster, precis som när du själv klickar.
+All data sparas lokalt i din webbläsare (`localStorage`). Tillägget pratar bara med instagram.com, via din egen inloggning i förhandsfönstret, och skickar ingenting någon annanstans. `content.js` tillåter bara läsanrop för kontoinfo och listorna *Följare*/*Följer*.
 
 ## Risker
 
 Instagram begränsar hur många konton man får följa och avfölja per timme och dygn. Gränserna är inte offentliga. Går man över kan kontot tillfälligt spärras från att följa och avfölja. Automatiserade åtgärder kan också strida mot Instagrams villkor. Kör hellre flera små omgångar än en stor. Du använder tillägget på egen risk.
 
-Avföljningen hittar knapparna på profilsidan via deras text (svenska och engelska). Ändrar Instagram sin sida kan den sluta fungera. Då stoppas körningen efter tre fel i rad.
+Hämtningen bygger på Instagrams interna webbanrop och avföljningen hittar knapparna på profilsidan via deras text (svenska och engelska). Ändrar Instagram något av det kan funktionen sluta fungera. Avföljningen stoppas då efter tre fel i rad.
 
 ## Filer
 
@@ -48,8 +49,8 @@ Avföljningen hittar knapparna på profilsidan via deras text (svenska och engel
 |---|---|
 | `avfolj-extension/manifest.json` | Tilläggets manifest (Manifest V3) |
 | `avfolj-extension/background.js` | Öppnar appfönstret när du klickar på ikonen |
-| `avfolj-extension/app.html`, `app.js` | Appen: import, listor, förhandsvisning, avföljning, export |
-| `avfolj-extension/content.js` | Körs på instagram.com och klickar *Sluta följa* när appen ber om det |
+| `avfolj-extension/app.html`, `app.js` | Appen: hämtning, import, listor, förhandsvisning, avföljning, export |
+| `avfolj-extension/content.js` | Körs på instagram.com: läser inloggat konto och listor, klickar *Sluta följa* när appen ber om det |
 
 ---
 
@@ -59,7 +60,9 @@ A Chrome extension that shows who you follow on Instagram that doesn't follow yo
 
 **Install:** download or clone this repo, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `avfolj-extension` folder. Pin the extension and click it.
 
-**Data:** in Instagram go to Settings → Accounts Center → Your information and permissions → **Download your information** → Some of your information → **Followers and following**, format **JSON**. Pick the downloaded zip file in the extension. Everything stays in your browser.
+**Data:** who you follow and your followers are fetched automatically from the Instagram account you are logged in to in Chrome, using the same read requests instagram.com makes when you open your Followers/Following lists. The app shows which account is logged in and keeps choices separate per account. Importing Instagram's data export (zip/JSON) or a CSV still works. Everything stays in your browser.
+
+**Lists:** Everyone I follow, Don't follow back, My followers, Follow back.
 
 **Risks:** Instagram limits how many accounts you can unfollow per hour and day, and the limits are not public. Going over can temporarily block your account from following and unfollowing, and automated actions may go against Instagram's terms. Keep runs small. Use at your own risk.
 

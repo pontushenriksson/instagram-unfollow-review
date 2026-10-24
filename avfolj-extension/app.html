@@ -63,6 +63,15 @@
   .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; color: var(--done); background: var(--done-bg); }
   .tag.fail { color: var(--drop); background: var(--drop-bg); }
   .empty { padding: 16px; color: var(--muted); text-align: center; justify-content: center; }
+  .account { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+  .account img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .account .who { flex: 1; min-width: 0; }
+  .account #acct-name { color: var(--muted); }
+  .card p { margin: 0; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details[open] summary { margin-bottom: 8px; }
+  details ol { margin-bottom: 10px; }
+  ul.list li .u small { color: var(--muted); font-size: 12px; margin-left: 4px; }
   .status { font-size: 12px; background: var(--sel); border-radius: 8px; padding: 8px 10px; }
   .runbox { border-color: var(--drop); }
 </style>
@@ -75,18 +84,28 @@
       <span class="saved" id="saved"></span>
       <button class="lang" id="lang"></button>
     </div>
+    <div class="account" id="account" hidden>
+      <img id="avatar" alt="" hidden referrerpolicy="no-referrer">
+      <div class="who"><b id="acct-user"></b> <span id="acct-name"></span><div class="hint" id="acct-meta"></div></div>
+      <button id="sync"></button>
+    </div>
     <div class="bar" id="bar"></div>
     <div class="stats" id="stats"></div>
   </header>
 
   <section class="card" id="empty" hidden>
     <h2 id="empty-title"></h2>
-    <ol id="empty-steps"></ol>
-    <div class="drop-zone">
-      <button class="primary" id="pick"></button>
-      <div id="drop-hint"></div>
-    </div>
+    <p id="empty-intro"></p>
+    <div class="row"><button class="primary" id="empty-sync"></button></div>
     <div class="hint" id="privacy"></div>
+    <details>
+      <summary id="file-import"></summary>
+      <ol id="empty-steps"></ol>
+      <div class="drop-zone">
+        <button id="pick"></button>
+        <div id="drop-hint"></div>
+      </div>
+    </details>
   </section>
 
   <div id="main" hidden>

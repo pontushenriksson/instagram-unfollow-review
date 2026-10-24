@@ -12,6 +12,8 @@ const TEXT = {
     listNon: 'Följer inte tillbaka ({n})',
     listAll: 'Alla jag följer ({n})',
     listMutual: 'Följer tillbaka ({n})',
+    listFollowers: 'Mina följare ({n})',
+    followsYou: 'Följer dig', notFollowing: 'Du följer inte',
     fAll: 'Alla', fTodo: 'Obesvarade', fDrop: 'Avfölj', fKeep: 'Behåll', fDone: 'Avföljda',
     search: 'Sök användarnamn',
     keep: 'Behåll', drop: 'Avfölj', done: 'Avföljd', failed: 'Misslyckades',
@@ -23,7 +25,21 @@ const TEXT = {
     noMatches: 'Inga träffar',
     nothingMarked: 'Inga konton är markerade som Avfölj.',
     copied: '{n} länkar kopierade',
-    emptyTitle: 'Importera din Instagram-data',
+    emptyTitle: 'Hämta från Instagram',
+    emptyIntro: 'Vilka du följer och dina följare hämtas automatiskt från kontot du är inloggad på i Chrome. Är du inte inloggad: logga in på instagram.com i förhandsfönstret som öppnas och klicka sedan Hämta.',
+    fileImport: 'Importera en fil i stället',
+    sync: 'Hämta från Instagram', refresh: 'Uppdatera', syncing: 'Hämtar…',
+    checking: 'Kollar vilket konto som är inloggat på Instagram…',
+    fetchingFollowing: 'Hämtar vilka du följer: {n} av {total}',
+    fetchingFollowers: 'Hämtar dina följare: {n} av {total}',
+    synced: 'Hämtade {following} konton du följer och {followers} följare för @{u}.',
+    syncLoggedOut: 'Du är inte inloggad på Instagram. Logga in i förhandsfönstret och klicka Hämta.',
+    syncFailed: 'Kunde inte hämta från Instagram: {e}',
+    rateLimited: 'Instagram ber dig vänta (för många förfrågningar). Försök igen om en stund.',
+    accountMeta: '{followers} följare · {following} följer',
+    syncedAt: 'hämtat {t}',
+    accountSwitched: 'Inloggad som @{u}. Valen sparas separat för varje konto.',
+    notSynced: 'inte hämtat än',
     emptySteps: [
       'Öppna Instagram → Inställningar → Kontocenter → Din information och behörigheter → Ladda ned din information.',
       'Välj ditt Instagram-konto → Viss information → kryssa bara i <b>Följare och följer</b>.',
@@ -33,7 +49,7 @@ const TEXT = {
     ],
     pick: 'Välj filer',
     dropHint: 'eller dra och släpp dem här',
-    privacy: 'Allt läses och sparas bara lokalt i din webbläsare. Inget skickas någonstans.',
+    privacy: 'Allt hämtas via din egen inloggning och sparas bara lokalt i din webbläsare. Inget skickas någon annanstans.',
     imported: 'Importerade {following} konton du följer och {followers} följare.',
     importedNoFollowers: 'Importerade {following} konton du följer. Följarfilen saknades, så "Följer inte tillbaka" kan inte räknas ut. Ta med followers_1.json.',
     importedCsv: 'Importerade {n} konton från CSV.',
@@ -65,6 +81,8 @@ const TEXT = {
     listNon: "Don't follow back ({n})",
     listAll: 'Everyone I follow ({n})',
     listMutual: 'Follow back ({n})',
+    listFollowers: 'My followers ({n})',
+    followsYou: 'Follows you', notFollowing: "You don't follow",
     fAll: 'All', fTodo: 'Undecided', fDrop: 'Unfollow', fKeep: 'Keep', fDone: 'Unfollowed',
     search: 'Search username',
     keep: 'Keep', drop: 'Unfollow', done: 'Unfollowed', failed: 'Failed',
@@ -76,7 +94,21 @@ const TEXT = {
     noMatches: 'No matches',
     nothingMarked: 'No accounts are marked as Unfollow.',
     copied: '{n} links copied',
-    emptyTitle: 'Import your Instagram data',
+    emptyTitle: 'Fetch from Instagram',
+    emptyIntro: 'Who you follow and your followers are fetched automatically from the account you are logged in to in Chrome. Not logged in? Log in to instagram.com in the preview window that opens, then click Fetch.',
+    fileImport: 'Import a file instead',
+    sync: 'Fetch from Instagram', refresh: 'Refresh', syncing: 'Fetching…',
+    checking: 'Checking which account is logged in to Instagram…',
+    fetchingFollowing: 'Fetching who you follow: {n} of {total}',
+    fetchingFollowers: 'Fetching your followers: {n} of {total}',
+    synced: 'Fetched {following} accounts you follow and {followers} followers for @{u}.',
+    syncLoggedOut: 'You are not logged in to Instagram. Log in in the preview window and click Fetch.',
+    syncFailed: 'Could not fetch from Instagram: {e}',
+    rateLimited: 'Instagram asks you to wait (too many requests). Try again in a while.',
+    accountMeta: '{followers} followers · {following} following',
+    syncedAt: 'fetched {t}',
+    accountSwitched: 'Logged in as @{u}. Choices are saved separately for each account.',
+    notSynced: 'not fetched yet',
     emptySteps: [
       'Open Instagram → Settings → Accounts Center → Your information and permissions → Download your information.',
       'Pick your Instagram account → Some of your information → tick only <b>Followers and following</b>.',
@@ -86,7 +118,7 @@ const TEXT = {
     ],
     pick: 'Choose files',
     dropHint: 'or drag and drop them here',
-    privacy: 'Everything is read and stored locally in your browser. Nothing is sent anywhere.',
+    privacy: 'Everything is fetched through your own login and stored only locally in your browser. Nothing is sent anywhere else.',
     imported: 'Imported {following} accounts you follow and {followers} followers.',
     importedNoFollowers: 'Imported {following} accounts you follow. The followers file was missing, so "Don\'t follow back" cannot be worked out. Include followers_1.json.',
     importedCsv: 'Imported {n} accounts from CSV.',
@@ -120,11 +152,12 @@ function t(key, vars = {}) {
 
 // --- State ------------------------------------------------------------------
 
-// people: [{ u, link, following, followsBack: true | false | null }]
+// people: [{ u, link, name, following, followsBack: true | false | null }]
 // decisions: username -> 'keep' | 'drop'; unfollowed: username -> timestamp; failed: username -> reason
+// account: the Instagram account the data belongs to ({ id, username, fullName, picture, followers, following, syncedAt })
+const freshData = () => ({ people: [], decisions: {}, unfollowed: {}, failed: {}, current: null, list: 'non', filter: 'all', account: null });
 let state = {
-  people: [], decisions: {}, unfollowed: {}, failed: {}, current: null,
-  list: 'non', filter: 'all', settings: { delay: 60, max: 50 },
+  ...freshData(), settings: { delay: 60, max: 50 },
   lang: (navigator.language || 'en').toLowerCase().startsWith('sv') ? 'sv' : 'en',
 };
 // 'mouse' while hovering, 'keys' while using arrows. Keyboard decisions only auto-advance in 'keys' mode,
@@ -269,12 +302,13 @@ async function importFiles(files) {
     }
   }
 
-  if (found.following.size) {
+  if (found.following.size || found.followers.size) {
     const hasFollowers = foundAny.followers;
-    state.people = [...found.following].sort().map(u => ({
-      u, link: profileUrl(u), following: true, followsBack: hasFollowers ? found.followers.has(u) : null,
+    // Everyone you follow plus every follower, so both sides can be listed.
+    state.people = [...new Set([...found.following, ...found.followers])].sort().map(u => ({
+      u, link: profileUrl(u), following: found.following.has(u), followsBack: hasFollowers ? found.followers.has(u) : null,
     }));
-    state.list = hasFollowers ? 'non' : 'all';
+    state.list = !found.following.size ? 'followers' : hasFollowers ? 'non' : 'all';
     setStatus(hasFollowers
       ? t('imported', { following: found.following.size, followers: found.followers.size })
       : t('importedNoFollowers', { following: found.following.size }));
@@ -413,6 +447,114 @@ async function unfollowOne(p) {
   }
 }
 
+// --- Fetch from Instagram ---------------------------------------------------
+
+let syncing = false;
+const PAGE_SIZE = 50;
+const PAGE_PAUSE = 1500; // between list pages, roughly the pace of scrolling the list on instagram.com
+
+// Sends a message to the content script, retrying while the page is still (re)loading.
+async function ask(tabId, msg, tries = 8) {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await chrome.tabs.sendMessage(tabId, msg);
+      if (r !== undefined) return r;
+    } catch (e) {
+      if (i >= tries) throw e;
+    }
+    await sleep(1000);
+  }
+}
+
+async function instagramTab() {
+  const url = 'https://www.instagram.com/';
+  wantedUrl = url;
+  const tabId = await openPreview(url);
+  await sleep(1500); // let the old page unload before talking to the new one
+  await ask(tabId, { type: 'ping' }, 20);
+  return tabId;
+}
+
+async function fetchList(tabId, me, kind) {
+  const users = [];
+  let maxId = '';
+  const total = kind === 'following' ? me.following : me.followers;
+  for (;;) {
+    const path = `/api/v1/friendships/${me.id}/${kind}/?count=${PAGE_SIZE}${maxId ? `&max_id=${encodeURIComponent(maxId)}` : ''}`;
+    const r = await ask(tabId, { type: 'api', path });
+    if (!r?.ok) throw new Error(r?.status === 429 || /wait/i.test(r?.data?.message || '') ? t('rateLimited') : `HTTP ${r?.status} ${r?.data?.message || r?.error || ''}`.trim());
+    for (const u of r.data?.users || []) users.push({ u: u.username, name: u.full_name || '' });
+    setStatus(t(kind === 'following' ? 'fetchingFollowing' : 'fetchingFollowers', { n: users.length, total: total ?? '?' }));
+    maxId = r.data?.next_max_id;
+    if (!maxId) return users;
+    await sleep(PAGE_PAUSE);
+  }
+}
+
+// Choices are stored per Instagram account, so logging in to another account never mixes lists.
+function switchAccount(me) {
+  if (state.account?.id === me.id) return false;
+  try {
+    if (state.account) localStorage.setItem(`${KEY}:acct:${state.account.id}`, JSON.stringify(state));
+  } catch (e) {}
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(`${KEY}:acct:${me.id}`) || 'null'); } catch (e) {}
+  // Data from before accounts were tracked (CSV or file import) is adopted by the first account.
+  if (stored) {
+    state = { ...stored, lang: state.lang, settings: state.settings };
+  } else {
+    if (state.account) state = { ...state, ...freshData() };
+    state.account = { id: me.id };
+  }
+  return true;
+}
+
+function applyAccount(me) {
+  state.account = { ...state.account, id: me.id, username: me.username, fullName: me.fullName, picture: me.picture, followers: me.followers, following: me.following };
+}
+
+// Checks who is logged in. Fetches the lists when there is no data for that account yet, or when forced.
+async function syncFromInstagram({ force = false } = {}) {
+  if (run || syncing) return;
+  syncing = true;
+  render();
+  try {
+    setStatus(t('checking'));
+    const tabId = await instagramTab();
+    const me = await ask(tabId, { type: 'whoami' });
+    if (!me?.loggedIn) { setStatus(t('syncLoggedOut')); return; }
+    const switched = switchAccount(me);
+    applyAccount(me);
+    save();
+    render();
+    if (!force && state.account.syncedAt) {
+      if (switched) setStatus(t('accountSwitched', { u: me.username }));
+      return;
+    }
+    const following = await fetchList(tabId, me, 'following');
+    const followers = await fetchList(tabId, me, 'followers');
+    mergePeople(following, followers);
+    state.account.syncedAt = Date.now();
+    state.account.following = following.length;
+    state.account.followers = followers.length;
+    save();
+    setStatus(t('synced', { following: following.length, followers: followers.length, u: me.username || me.id }));
+  } catch (e) {
+    setStatus(t('syncFailed', { e: e.message }));
+  } finally {
+    syncing = false;
+    render();
+  }
+}
+
+function mergePeople(following, followers) {
+  const names = new Map([...following, ...followers].map(x => [x.u, x.name]));
+  const fol = new Set(following.map(x => x.u));
+  const fan = new Set(followers.map(x => x.u));
+  state.people = [...names.keys()].sort().map(u => ({ u, link: profileUrl(u), name: names.get(u), following: fol.has(u), followsBack: fan.has(u) }));
+  if (!state.people.some(p => p.u === state.current)) state.current = state.people.find(matches)?.u || null;
+}
+
 async function countdown(seconds, i, n) {
   for (let s = seconds; s > 0 && !run.stop; s--) {
     setRunText(t('waiting', { i, n, ok: run.ok, s }));
@@ -423,7 +565,7 @@ async function countdown(seconds, i, n) {
 function setRunText(text) { document.getElementById('run-text').textContent = text; }
 
 async function startRun() {
-  if (run) return;
+  if (run || syncing) return;
   const targets = state.people.filter(p => state.decisions[p.u] === 'drop' && !state.unfollowed[p.u]).slice(0, state.settings.max);
   if (!targets.length) { alert(t('nothingToRun')); return; }
   const n = targets.length;
@@ -464,9 +606,10 @@ async function startRun() {
 
 // --- Selection and decisions ------------------------------------------------
 
-const q = () => document.getElementById('q').value.trim().toLowerCase();
+const q = () => document.getElementById('q').value.trim().toLowerCase().replace(/^@/, '');
 function inList(p) {
   if (state.list === 'all') return p.following;
+  if (state.list === 'followers') return p.followsBack === true;
   if (state.list === 'mutual') return p.following && p.followsBack === true;
   return p.following && p.followsBack === false;
 }
@@ -474,12 +617,12 @@ function matches(p) {
   if (!inList(p)) return false;
   const d = state.decisions[p.u];
   const done = !!state.unfollowed[p.u];
-  if (state.filter === 'todo' && (d || done)) return false;
+  if (state.filter === 'todo' && (d || done || !p.following)) return false;
   if (state.filter === 'drop' && (d !== 'drop' || done)) return false;
   if (state.filter === 'keep' && d !== 'keep') return false;
   if (state.filter === 'done' && !done) return false;
   const s = q();
-  return !s || p.u.toLowerCase().includes(s);
+  return !s || p.u.toLowerCase().includes(s) || (p.name || '').toLowerCase().includes(s);
 }
 const visible = () => state.people.filter(matches);
 const indexOf = u => state.people.findIndex(p => p.u === u);
@@ -519,7 +662,7 @@ function step(dir) {
 }
 
 function decide(u, kind, { advance = false } = {}) {
-  if (!person(u) || state.unfollowed[u]) return;
+  if (!person(u)?.following || state.unfollowed[u]) return;
   const toggledOff = state.decisions[u] === kind;
   if (toggledOff) delete state.decisions[u];
   else state.decisions[u] = kind;
@@ -557,6 +700,8 @@ function renderStaticText() {
   set('pick', 'pick');
   set('drop-hint', 'dropHint');
   set('privacy', 'privacy');
+  set('empty-intro', 'emptyIntro');
+  set('file-import', 'fileImport');
   set('hint', 'keys');
   document.getElementById('empty-steps').innerHTML = t('emptySteps').map(s => `<li>${s}</li>`).join('');
   document.getElementById('q').placeholder = t('search');
@@ -566,38 +711,62 @@ function renderStaticText() {
   }
 }
 
+function renderAccount() {
+  const a = state.account;
+  const box = document.getElementById('account');
+  box.hidden = !a?.username;
+  const sync = document.getElementById('sync');
+  sync.textContent = syncing ? t('syncing') : state.people.length ? t('refresh') : t('sync');
+  sync.disabled = syncing || !!run;
+  document.getElementById('empty-sync').textContent = syncing ? t('syncing') : t('sync');
+  document.getElementById('empty-sync').disabled = syncing || !!run;
+  if (!a?.username) return;
+  const img = document.getElementById('avatar');
+  if (a.picture && img.dataset.src !== a.picture) { img.hidden = false; img.dataset.src = a.picture; img.src = a.picture; }
+  document.getElementById('acct-user').textContent = '@' + a.username;
+  document.getElementById('acct-name').textContent = a.fullName || '';
+  const when = a.syncedAt ? t('syncedAt', { t: new Date(a.syncedAt).toLocaleString(state.lang === 'sv' ? 'sv-SE' : undefined, { dateStyle: 'short', timeStyle: 'short' }) }) : t('notSynced');
+  const meta = a.followers != null ? t('accountMeta', { followers: a.followers, following: a.following }) + ' · ' : '';
+  document.getElementById('acct-meta').textContent = meta + when;
+}
+
 function render() {
   renderStaticText();
+  renderAccount();
   const hasData = state.people.length > 0;
   document.getElementById('empty').hidden = hasData;
   for (const id of ['main', 'actions', 'list', 'hint']) document.getElementById(id).hidden = !hasData;
   document.getElementById('runbox').hidden = !run;
   if (!hasData) return;
 
-  const counts = { non: 0, all: 0, mutual: 0 };
+  const counts = { all: 0, non: 0, followers: 0, mutual: 0 };
   for (const p of state.people) {
+    if (p.followsBack === true) counts.followers++;
     if (!p.following) continue;
     counts.all++;
     if (p.followsBack === false) counts.non++;
     if (p.followsBack === true) counts.mutual++;
   }
-  const lists = [['non', 'listNon'], ['all', 'listAll'], ['mutual', 'listMutual']].filter(([k]) => k === 'all' || counts[k] || state.list === k);
+  const lists = [['all', 'listAll'], ['non', 'listNon'], ['followers', 'listFollowers'], ['mutual', 'listMutual']]
+    .filter(([k]) => k === 'all' || counts[k] || state.list === k);
   document.getElementById('list-select').innerHTML = lists.map(([k, key]) => `<option value="${k}">${esc(t(key, { n: counts[k] }))}</option>`).join('');
   document.getElementById('list-select').value = state.list;
   document.getElementById('filter').innerHTML = [['all', 'fAll'], ['todo', 'fTodo'], ['drop', 'fDrop'], ['keep', 'fKeep'], ['done', 'fDone']]
     .map(([k, key]) => `<option value="${k}">${esc(t(key))}</option>`).join('');
   document.getElementById('filter').value = state.filter;
 
-  let drop = 0, keep = 0, done = 0, total = 0;
+  let drop = 0, keep = 0, done = 0, total = 0, actionable = 0;
   for (const p of state.people) {
     if (!inList(p)) continue;
     total++;
+    if (!p.following) continue;
+    actionable++;
     const d = state.decisions[p.u];
     if (state.unfollowed[p.u]) done++;
     else if (d === 'drop') drop++;
     else if (d === 'keep') keep++;
   }
-  const todo = total - drop - keep - done;
+  const todo = actionable - drop - keep - done;
   const pct = n => (total ? n / total * 100 : 0);
   document.getElementById('bar').innerHTML =
     `<span style="width:${pct(done)}%;background:var(--done)"></span>` +
@@ -610,20 +779,24 @@ function render() {
   const pending = state.people.filter(p => state.decisions[p.u] === 'drop' && !state.unfollowed[p.u]).length;
   const runBtn = document.getElementById('run');
   runBtn.textContent = t('run', { n: Math.min(pending, state.settings.max) });
-  runBtn.disabled = !!run || !pending;
-  document.getElementById('import').disabled = !!run;
+  runBtn.disabled = !!run || syncing || !pending;
+  document.getElementById('import').disabled = !!run || syncing;
 
   const items = visible();
   document.getElementById('list').innerHTML = items.length ? items.map(x => {
     const d = state.decisions[x.u];
-    const right = state.unfollowed[x.u]
+    const followsYou = state.list === 'all' && x.followsBack === true ? `<span class="tag">${esc(t('followsYou'))}</span>` : '';
+    const right = !x.following
+      ? `<span class="tag">${esc(t('notFollowing'))}</span>`
+      : state.unfollowed[x.u]
       ? `<span class="tag">${esc(t('done'))}</span>`
-      : `${state.failed[x.u] ? `<span class="tag fail" title="${esc(state.failed[x.u])}">${esc(t('failed'))}</span>` : ''}
+      : `${followsYou}${state.failed[x.u] ? `<span class="tag fail" title="${esc(state.failed[x.u])}">${esc(t('failed'))}</span>` : ''}
         <span class="pick">
           <button class="keep ${d === 'keep' ? 'on' : ''}" data-act="keep">${esc(t('keep'))}</button>
           <button class="drop ${d === 'drop' ? 'on' : ''}" data-act="drop">${esc(t('drop'))}</button>
         </span>`;
-    return `<li data-u="${esc(x.u)}" class="${x.u === state.current ? 'cur' : ''}"><span class="u">@${esc(x.u)}</span>${right}</li>`;
+    const name = x.name ? ` <small>${esc(x.name)}</small>` : '';
+    return `<li data-u="${esc(x.u)}" class="${x.u === state.current ? 'cur' : ''}"><span class="u">@${esc(x.u)}${name}</span>${right}</li>`;
   }).join('') : `<li class="empty">${esc(t('noMatches'))}</li>`;
 
   const status = document.getElementById('status');
@@ -693,7 +866,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'n') {
     lastInput = 'keys';
     const i = indexOf(state.current);
-    const open = p => matches(p) && !state.decisions[p.u] && !state.unfollowed[p.u];
+    const open = p => matches(p) && p.following && !state.decisions[p.u] && !state.unfollowed[p.u];
     const next = state.people.find((p, j) => j > i && open(p)) || state.people.find(open);
     if (next) select(next.u, { scroll: true });
   } else return;
@@ -716,6 +889,9 @@ document.addEventListener('drop', e => {
 });
 
 document.getElementById('run').onclick = startRun;
+document.getElementById('sync').onclick = () => syncFromInstagram({ force: true });
+document.getElementById('empty-sync').onclick = () => syncFromInstagram({ force: true });
+document.getElementById('avatar').onerror = e => { e.target.hidden = true; };
 document.getElementById('stop').onclick = () => { if (run) run.stop = true; };
 document.getElementById('export').onclick = exportCsv;
 document.getElementById('copy').onclick = copyLinks;
@@ -743,4 +919,4 @@ document.getElementById('filter').onchange = e => { state.filter = e.target.valu
 load();
 if (!state.current || indexOf(state.current) < 0) state.current = state.people.find(matches)?.u || null;
 render();
-if (window.chrome?.windows) placeAppWindow().catch(() => {});
+if (window.chrome?.windows) placeAppWindow().catch(() => {}).then(() => syncFromInstagram());
