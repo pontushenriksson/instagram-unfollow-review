@@ -1,0 +1,8 @@
+.DS_Store
+.claude/
+# Personal Instagram data must never be committed
+*.csv
+*.zip
+connections/
+followers*.json
+following*.json

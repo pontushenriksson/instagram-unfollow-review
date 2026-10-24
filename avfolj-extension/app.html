@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unfollow Review</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1c1b19; --muted: #6b6862; --line: #e3e0da;
+    --accent: #2f5bea; --keep: #1f8a4c; --keep-bg: #e5f4ea; --drop: #c8372d; --drop-bg: #fbe7e5;
+    --done: #6b6862; --done-bg: #ecebe7; --sel: #eef2fd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141414; --panel: #1d1d1c; --text: #ecebe8; --muted: #9a978f; --line: #2e2d2b;
+      --accent: #7b9bff; --keep: #4cc27f; --keep-bg: #183224; --drop: #ff7a6e; --drop-bg: #3a1c19;
+      --done: #a9a69e; --done-bg: #2a2927; --sel: #222a40;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  [hidden] { display: none !important; }
+  .app { display: flex; flex-direction: column; height: 100vh; max-width: 640px; margin: 0 auto; padding: 12px 16px; gap: 10px; }
+  header { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; flex: 1; }
+  .saved { font-size: 12px; color: var(--muted); }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; display: flex; }
+  .bar span { display: block; height: 100%; }
+  .stats { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  .stats b { color: var(--text); font-weight: 600; }
+  button, select, input { font: inherit; color: inherit; }
+  button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--drop); border-color: var(--drop); color: #fff; }
+  .lang { padding: 2px 8px; font-size: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card h2 { font-size: 15px; margin: 0; }
+  .card ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+  .card label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .card input[type=number] { width: 80px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 6px; }
+  .drop-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); }
+  body.dragging .drop-zone { border-color: var(--accent); color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); }
+  .warn { font-size: 12px; color: var(--muted); border-left: 3px solid var(--drop); padding-left: 8px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filters input { flex: 1; min-width: 140px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; }
+  .filters select { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px; }
+  ul.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 120px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  ul.list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); }
+  ul.list li:last-child { border-bottom: 0; }
+  ul.list li.cur { background: var(--sel); }
+  ul.list li .u { flex: 1; word-break: break-all; padding: 4px 0; cursor: default; }
+  .pick { display: flex; gap: 4px; }
+  .pick button { padding: 3px 9px; font-size: 12px; font-weight: 600; border-radius: 6px; color: var(--muted); }
+  .pick .keep.on { color: var(--keep); background: var(--keep-bg); border-color: var(--keep); }
+  .pick .drop.on { color: var(--drop); background: var(--drop-bg); border-color: var(--drop); }
+  .pick .keep:hover { color: var(--keep); }
+  .pick .drop:hover { color: var(--drop); }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; color: var(--done); background: var(--done-bg); }
+  .tag.fail { color: var(--drop); background: var(--drop-bg); }
+  .empty { padding: 16px; color: var(--muted); text-align: center; justify-content: center; }
+  .status { font-size: 12px; background: var(--sel); border-radius: 8px; padding: 8px 10px; }
+  .runbox { border-color: var(--drop); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="row">
+      <h1 id="title"></h1>
+      <span class="saved" id="saved"></span>
+      <button class="lang" id="lang"></button>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section class="card" id="empty" hidden>
+    <h2 id="empty-title"></h2>
+    <ol id="empty-steps"></ol>
+    <div class="drop-zone">
+      <button class="primary" id="pick"></button>
+      <div id="drop-hint"></div>
+    </div>
+    <div class="hint" id="privacy"></div>
+  </section>
+
+  <div id="main" hidden>
+    <div class="filters">
+      <select id="list-select"></select>
+      <select id="filter"></select>
+      <input type="search" id="q">
+    </div>
+  </div>
+  <div class="row" id="actions" hidden>
+    <button class="danger" id="run"></button>
+    <button id="export"></button>
+    <button id="copy"></button>
+    <button id="import"></button>
+    <button id="settings-toggle"></button>
+  </div>
+
+  <section class="card runbox" id="runbox" hidden>
+    <div id="run-text"></div>
+    <div class="row"><button id="stop"></button></div>
+  </section>
+
+  <section class="card" id="settings" hidden>
+    <label><span id="delay-label"></span><input type="number" id="delay" min="15" max="3600"></label>
+    <label><span id="max-label"></span><input type="number" id="max" min="1" max="500"></label>
+    <div class="warn" id="limit-note"></div>
+  </section>
+
+  <div class="status" id="status" hidden></div>
+  <ul class="list" id="list" hidden></ul>
+  <div class="hint" id="hint" hidden></div>
+  <input type="file" id="file" multiple accept=".zip,.json,.html,.csv" hidden>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
