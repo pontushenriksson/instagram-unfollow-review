@@ -50,7 +50,15 @@ function pageState() {
   return null;
 }
 
-async function unfollow(username) {
+// Asks Instagram whether you still follow the account. null when it can't be checked.
+async function friendship(id) {
+  if (!id) return null;
+  const r = await api(`/api/v1/friendships/show/${id}/`).catch(() => null);
+  return r?.ok && r.data && typeof r.data.following === 'boolean' ? r.data : null;
+}
+const stillFollowing = f => !!(f && (f.following || f.outgoing_request));
+
+async function unfollow(username, id) {
   if (location.pathname.startsWith('/accounts/login')) return { status: 'logged-out' };
   if (profileName() !== username.toLowerCase()) return { status: 'error', detail: 'wrong-page' };
 
@@ -58,18 +66,33 @@ async function unfollow(username) {
   if (!state) return { status: 'error', detail: 'no-follow-button' };
   if (typeof state === 'string') return { status: state };
 
-  state.following.click();
-  const confirm = await waitFor(() => dialogButton(CONFIRM), 6000);
+  // The header can render before React has hydrated it, and then a click does nothing. Click again once.
+  let confirm = null;
+  for (let attempt = 0; attempt < 2 && !confirm; attempt++) {
+    (headerButton(FOLLOWING) || state.following).click();
+    confirm = await waitFor(() => dialogButton(CONFIRM), attempt ? 6000 : 3000);
+  }
   if (!confirm) return { status: 'error', detail: 'no-confirm-dialog' };
+  await sleep(300); // let the dialog finish opening before clicking in it
   confirm.click();
 
   const result = await waitFor(() => (BLOCKED.test(dialogText()) ? 'blocked' : headerButton(FOLLOW) ? 'ok' : null), 10000);
-  return result ? { status: result } : { status: 'error', detail: 'not-confirmed' };
+  if (result === 'blocked') return { status: 'blocked' };
+
+  // The button flips to "Follow" right away even when Instagram later drops the request,
+  // so the result is checked against the server before it counts.
+  await sleep(2500);
+  if (BLOCKED.test(dialogText())) return { status: 'blocked' };
+  const f = await friendship(id);
+  if (stillFollowing(f)) return { status: 'not-applied' };
+  if (f) return { status: 'ok', verified: true };
+  return result ? { status: 'ok', verified: false } : { status: 'error', detail: 'not-confirmed' };
 }
 
-// The same read-only requests instagram.com makes when you open your own Followers/Following lists.
+// The same read-only requests instagram.com makes when you open your own Followers/Following lists
+// or look at a profile.
 // Only these paths are allowed, and only GET.
-const API_PATH = /^\/api\/v1\/(users\/\d+\/info\/|friendships\/\d+\/(followers|following)\/\?[\w=&%.-]*)$/;
+const API_PATH = /^\/api\/v1\/(users\/\d+\/info\/|friendships\/show\/\d+\/|friendships\/\d+\/(followers|following)\/\?[\w=&%.-]*)$/;
 const IG_APP_ID = '936619743392459'; // public id of the instagram.com web app
 
 async function api(path) {
@@ -91,12 +114,13 @@ async function whoami() {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'ping') {
-    sendResponse({ path: location.pathname });
+    // loadedAt lets the app tell a freshly loaded profile from the page that was there before it navigated.
+    sendResponse({ path: location.pathname, loadedAt: performance.timeOrigin });
   } else if (msg?.type === 'whoami' || msg?.type === 'api') {
     (msg.type === 'whoami' ? whoami() : api(String(msg.path || ''))).then(sendResponse, e => sendResponse({ ok: false, status: 0, error: e.message }));
     return true;
   } else if (msg?.type === 'unfollow') {
-    unfollow(String(msg.username || '')).then(sendResponse, e => sendResponse({ status: 'error', detail: e.message }));
+    unfollow(String(msg.username || ''), /^\d+$/.test(msg.id || '') ? msg.id : null).then(sendResponse, e => sendResponse({ status: 'error', detail: e.message }));
     return true;
   }
 });
