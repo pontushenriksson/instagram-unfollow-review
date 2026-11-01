@@ -3,141 +3,216 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Unfollow Review</title>
+<title>Rensa</title>
+<link rel="icon" href="icons/icon-32.png">
 <style>
   :root {
-    --bg: #f6f5f2; --panel: #ffffff; --text: #1c1b19; --muted: #6b6862; --line: #e3e0da;
-    --accent: #2f5bea; --keep: #1f8a4c; --keep-bg: #e5f4ea; --drop: #c8372d; --drop-bg: #fbe7e5;
-    --done: #6b6862; --done-bg: #ecebe7; --sel: #eef2fd;
+    --bg: #f6f4f9; --panel: #ffffff; --text: #17141f; --muted: #6f6a7b; --line: #e8e4ee; --soft: #f1edf7;
+    --accent: #6d3fe2; --accent-text: #ffffff;
+    --brand: linear-gradient(135deg, #ff8a3d 0%, #f0386b 52%, #7b3fe4 100%);
+    --keep: #13854d; --keep-bg: #e2f5ea; --drop: #e0335e; --drop-bg: #fde8ee;
+    --warn: #a14a00; --warn-bg: #fff3e3; --warn-line: #f5a54a;
+    --sel: #efe9fd; --shadow: 0 1px 2px rgba(23, 20, 31, .05), 0 4px 16px rgba(23, 20, 31, .05);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #141414; --panel: #1d1d1c; --text: #ecebe8; --muted: #9a978f; --line: #2e2d2b;
-      --accent: #7b9bff; --keep: #4cc27f; --keep-bg: #183224; --drop: #ff7a6e; --drop-bg: #3a1c19;
-      --done: #a9a69e; --done-bg: #2a2927; --sel: #222a40;
+      --bg: #121016; --panel: #1b1820; --text: #eeeaf4; --muted: #9e97ab; --line: #2c2833; --soft: #231f2a;
+      --accent: #9d7bff; --accent-text: #120c22;
+      --keep: #4cc985; --keep-bg: #15301f; --drop: #ff6b8d; --drop-bg: #3a1823;
+      --warn: #ffb766; --warn-bg: #33230f; --warn-line: #a8651d;
+      --sel: #271f3d; --shadow: none;
     }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
-  body { background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   [hidden] { display: none !important; }
-  .app { display: flex; flex-direction: column; height: 100vh; max-width: 640px; margin: 0 auto; padding: 12px 16px; gap: 10px; }
-  header { display: flex; flex-direction: column; gap: 8px; }
+  .app { display: flex; flex-direction: column; height: 100vh; max-width: 640px; margin: 0 auto; padding: 14px 16px 0; gap: 10px; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  h1 { font-size: 16px; margin: 0; flex: 1; }
-  .saved { font-size: 12px; color: var(--muted); }
-  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; display: flex; }
-  .bar span { display: block; height: 100%; }
-  .stats { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
-  .stats b { color: var(--text); font-weight: 600; }
   button, select, input { font: inherit; color: inherit; }
-  button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-  button:hover { border-color: var(--muted); }
+  button { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 12px; cursor: pointer; transition: border-color .15s, background .15s, opacity .15s; }
+  button:hover:not(:disabled) { border-color: var(--muted); }
   button:disabled { opacity: .5; cursor: default; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.danger { background: var(--drop); border-color: var(--drop); color: #fff; }
-  .lang { padding: 2px 8px; font-size: 12px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .card h2 { font-size: 15px; margin: 0; }
-  .card ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
-  .card label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .card input[type=number] { width: 80px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 6px; }
-  .drop-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); }
-  body.dragging .drop-zone { border-color: var(--accent); color: var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .hint { font-size: 12px; color: var(--muted); }
-  .warn { font-size: 12px; color: var(--muted); border-left: 3px solid var(--drop); padding-left: 8px; }
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
-  .filters input { flex: 1; min-width: 140px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 10px; }
-  .filters select { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px; }
-  ul.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 120px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
-  ul.list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); }
+
+  /* Brand header */
+  .top { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .brand svg { width: 34px; height: 34px; flex: none; }
+  .wordmark { font-size: 19px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { font-size: 12px; color: var(--muted); }
+  .saved { font-size: 11px; color: var(--muted); }
+  .ghost { border-color: transparent; background: transparent; font-size: 12px; font-weight: 600; padding: 6px 8px; color: var(--muted); }
+  .icon-btn { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 10px; }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .icon-btn.on { background: var(--sel); border-color: var(--accent); color: var(--accent); }
+
+  /* Account */
+  .account { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: var(--shadow); }
+  .ring { width: 46px; height: 46px; border-radius: 50%; padding: 2px; background: var(--brand); flex: none; }
+  .ring img, .ring .ph { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--panel); background: var(--soft); display: block; }
+  .account .who { flex: 1; min-width: 0; }
+  .account .who > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #acct-name { color: var(--muted); }
+  .progress { height: 4px; border-radius: 2px; background: var(--soft); overflow: hidden; margin-top: 6px; }
+  .progress span { display: block; height: 100%; background: var(--brand); border-radius: 2px; transition: width .4s; }
+  .progress.indeterminate span { animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(700%); } }
+  .spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Cards */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+  .card h2 { font-size: 15px; margin: 0; }
+  .card p { margin: 0; }
+  .card label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .card input[type=number] { width: 84px; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 8px; text-align: right; }
+  .card input.risky { border-color: var(--drop); color: var(--drop); font-weight: 700; }
+  .risk { font-size: 12.5px; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 12px; }
+  .risk::before { content: "⚠"; margin-right: 6px; font-weight: 700; }
+  .hero { align-items: center; text-align: center; padding: 28px 20px; }
+  .hero svg { width: 64px; height: 64px; }
+  .hero h2 { font-size: 18px; }
+  .hero p { color: var(--muted); max-width: 420px; }
+
+  .primary { background: var(--brand); border: 0; color: #fff; font-weight: 700; padding: 10px 18px; }
+  .primary:hover:not(:disabled) { filter: brightness(1.05); }
+  .primary span, .primary svg { vertical-align: middle; }
+  .primary svg { width: 15px; height: 15px; margin-right: 6px; }
+
+  /* Lists */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .tab { white-space: nowrap; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .tab .count { margin-left: 6px; font-size: 11px; background: var(--soft); border-radius: 999px; padding: 1px 7px; }
+  .tab.on { background: var(--text); border-color: var(--text); color: var(--panel); }
+  .tab.on .count { background: rgba(127, 127, 127, .3); color: inherit; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .tile { text-align: left; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 1px; }
+  .tile b { font-size: 18px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .tile span { font-size: 11px; color: var(--muted); }
+  .tile.drop b { color: var(--drop); }
+  .tile.keep b { color: var(--keep); }
+  .tile.on { border-color: var(--accent); background: var(--sel); }
+  .bar { height: 5px; background: var(--soft); border-radius: 3px; overflow: hidden; display: flex; margin-top: 8px; }
+  .bar span { display: block; height: 100%; transition: width .3s; }
+  .filters { display: flex; gap: 8px; margin-top: 10px; }
+  .filters input { flex: 1; min-width: 120px; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 12px; }
+  .filters select { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 8px; }
+  ul.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 120px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+  ul.list li { display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 12px; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; }
   ul.list li:last-child { border-bottom: 0; }
   ul.list li.cur { background: var(--sel); }
-  ul.list li .u { flex: 1; word-break: break-all; padding: 4px 0; cursor: default; }
-  .pick { display: flex; gap: 4px; }
-  .pick button { padding: 3px 9px; font-size: 12px; font-weight: 600; border-radius: 6px; color: var(--muted); }
+  ul.list li.marked { border-left-color: var(--drop); }
+  .av { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; background: var(--soft); color: var(--muted); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  ul.list li .u { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: default; }
+  .handle { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  ul.list li .u small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .verified { width: 13px; height: 13px; fill: #3897f0; margin-left: 4px; vertical-align: -1px; }
+  .pick { display: flex; gap: 4px; flex: none; }
+  .pick button { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--muted); }
   .pick .keep.on { color: var(--keep); background: var(--keep-bg); border-color: var(--keep); }
-  .pick .drop.on { color: var(--drop); background: var(--drop-bg); border-color: var(--drop); }
+  .pick .drop.on { color: #fff; background: var(--drop); border-color: var(--drop); }
   .pick .keep:hover { color: var(--keep); }
-  .pick .drop:hover { color: var(--drop); }
-  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; color: var(--done); background: var(--done-bg); }
+  .pick .drop:not(.on):hover { color: var(--drop); }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; color: var(--muted); background: var(--soft); white-space: nowrap; flex: none; }
   .tag.fail { color: var(--drop); background: var(--drop-bg); }
-  .empty { padding: 16px; color: var(--muted); text-align: center; justify-content: center; }
-  .account { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
-  .account img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-  .account .who { flex: 1; min-width: 0; }
-  .account #acct-name { color: var(--muted); }
-  .card p { margin: 0; }
-  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  details[open] summary { margin-bottom: 8px; }
-  details ol { margin-bottom: 10px; }
-  ul.list li .u small { color: var(--muted); font-size: 12px; margin-left: 4px; }
-  .status { font-size: 12px; background: var(--sel); border-radius: 8px; padding: 8px 10px; }
+  .empty { padding: 20px; color: var(--muted); text-align: center; justify-content: center; }
+  .status { font-size: 12px; color: var(--muted); padding: 0 4px; }
+
+  /* Run */
   .runbox { border-color: var(--drop); }
+  .runbox b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .runbox .progress span { background: var(--drop); }
+  .actionbar { display: flex; align-items: center; gap: 10px; padding: 10px 0 14px; border-top: 1px solid var(--line); }
+  .pace { flex: 1; font-size: 12px; color: var(--muted); }
+  .pace.risky { color: var(--drop); font-weight: 600; }
+  .run { background: var(--drop); border-color: var(--drop); color: #fff; font-weight: 700; padding: 10px 18px; }
+  .keys { padding: 0 4px; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="brand-g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff8a3d"/><stop offset=".52" stop-color="#f0386b"/><stop offset="1" stop-color="#7b3fe4"/>
+    </linearGradient>
+    <symbol id="logo" viewBox="0 0 128 128">
+      <rect x="4" y="4" width="120" height="120" rx="32" fill="url(#brand-g)"/>
+      <circle cx="52" cy="47" r="17" fill="#fff"/>
+      <path d="M22 98c0-18 13.4-30 30-30s30 12 30 30v2H22z" fill="#fff"/>
+      <rect x="80" y="44" width="30" height="11" rx="5.5" fill="#fff"/>
+    </symbol>
+    <symbol id="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v3h3"/><path d="M4 13a8 8 0 0 0 14.6 4.5M20 20v-3h-3"/>
+    </symbol>
+  </defs>
+</svg>
 <div class="app">
-  <header>
-    <div class="row">
-      <h1 id="title"></h1>
-      <span class="saved" id="saved"></span>
-      <button class="lang" id="lang"></button>
+  <header class="top">
+    <div class="brand">
+      <svg><use href="#logo"/></svg>
+      <div><div class="wordmark">Rensa</div><div class="tagline" id="tagline"></div></div>
     </div>
-    <div class="account" id="account" hidden>
-      <img id="avatar" alt="" hidden referrerpolicy="no-referrer">
-      <div class="who"><b id="acct-user"></b> <span id="acct-name"></span><div class="hint" id="acct-meta"></div></div>
-      <button id="sync"></button>
-    </div>
-    <div class="bar" id="bar"></div>
-    <div class="stats" id="stats"></div>
+    <span class="saved" id="saved"></span>
+    <button class="ghost" id="lang"></button>
+    <button class="icon-btn" id="settings-toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
   </header>
 
-  <section class="card" id="empty" hidden>
+  <section class="account" id="account" hidden>
+    <div class="ring"><img id="avatar" alt="" hidden referrerpolicy="no-referrer"></div>
+    <div class="who">
+      <div><b id="acct-user"></b> <span id="acct-name"></span></div>
+      <div class="hint" id="acct-meta"></div>
+    </div>
+    <button class="icon-btn" id="sync"><svg><use href="#sync-icon"/></svg></button>
+  </section>
+  <div class="progress" id="sync-bar" hidden><span id="sync-fill"></span></div>
+
+  <section class="card" id="settings" hidden>
+    <h2 id="settings-title"></h2>
+    <label><span id="delay-label"></span><input type="number" id="delay" min="0" max="3600"></label>
+    <div class="risk" id="pace-warn" hidden></div>
+    <label><span id="max-label"></span><input type="number" id="max" min="1" max="500"></label>
+    <div class="hint" id="limit-note"></div>
+    <div class="row"><button id="export"></button></div>
+  </section>
+
+  <section class="card hero" id="empty" hidden>
+    <svg><use href="#logo"/></svg>
     <h2 id="empty-title"></h2>
     <p id="empty-intro"></p>
-    <div class="row"><button class="primary" id="empty-sync"></button></div>
+    <button class="primary" id="empty-sync"><svg><use href="#sync-icon"/></svg><span></span></button>
     <div class="hint" id="privacy"></div>
-    <details>
-      <summary id="file-import"></summary>
-      <ol id="empty-steps"></ol>
-      <div class="drop-zone">
-        <button id="pick"></button>
-        <div id="drop-hint"></div>
-      </div>
-    </details>
   </section>
 
   <div id="main" hidden>
+    <div class="tabs" id="tabs"></div>
+    <div class="stats" id="stats"></div>
+    <div class="bar" id="bar"></div>
     <div class="filters">
-      <select id="list-select"></select>
       <select id="filter"></select>
       <input type="search" id="q">
     </div>
   </div>
-  <div class="row" id="actions" hidden>
-    <button class="danger" id="run"></button>
-    <button id="export"></button>
-    <button id="copy"></button>
-    <button id="import"></button>
-    <button id="settings-toggle"></button>
-  </div>
 
   <section class="card runbox" id="runbox" hidden>
-    <div id="run-text"></div>
-    <div class="row"><button id="stop"></button></div>
-  </section>
-
-  <section class="card" id="settings" hidden>
-    <label><span id="delay-label"></span><input type="number" id="delay" min="15" max="3600"></label>
-    <label><span id="max-label"></span><input type="number" id="max" min="1" max="500"></label>
-    <div class="warn" id="limit-note"></div>
+    <div class="row">
+      <div style="flex:1;min-width:0"><b id="run-title"></b><div class="hint" id="run-text"></div></div>
+      <button id="stop"></button>
+    </div>
+    <div class="progress"><span id="run-fill"></span></div>
   </section>
 
   <div class="status" id="status" hidden></div>
   <ul class="list" id="list" hidden></ul>
-  <div class="hint" id="hint" hidden></div>
-  <input type="file" id="file" multiple accept=".zip,.json,.html,.csv" hidden>
+  <div class="hint keys" id="hint" hidden></div>
+  <footer class="actionbar" id="actions" hidden>
+    <div class="pace" id="pace"></div>
+    <button class="run" id="run"></button>
+  </footer>
 </div>
 <script src="app.js"></script>
 </body>
