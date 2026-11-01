@@ -232,16 +232,23 @@ function setStatus(text) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const firstSegment = path => (path || '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
 
-// Waits until the content script reports that the given profile has loaded after `since`.
-// Without the load time check, a preview that already showed this profile (from hovering it)
-// answers before the new load starts, and the unfollow is sent to a page that is going away.
-async function waitForProfile(tabId, u, since, ms = 25000) {
+// The page id of what the preview shows right now, or null.
+async function pageInstance(tabId) {
+  try { return (await chrome.tabs.sendMessage(tabId, { type: 'ping' }))?.instance || null; } catch (e) { return null; }
+}
+
+// Waits until the content script reports that the given profile has loaded in a page other than `before`.
+// Without that check, a preview that already showed this profile (from hovering it) answers before
+// the new load starts, and the unfollow is sent to a page that is going away. Page ids are compared
+// instead of load times: a long-lived tab's performance.timeOrigin can lag Date.now() by however long
+// the Mac has slept, which made every profile look stale.
+async function waitForProfile(tabId, u, before, ms = 25000) {
   const end = Date.now() + ms;
   while (Date.now() < end && !run?.stop) {
     try {
       const r = await chrome.tabs.sendMessage(tabId, { type: 'ping' });
       if (r?.path?.startsWith('/accounts/login')) return 'logged-out';
-      if (firstSegment(r?.path) === u.toLowerCase() && r.loadedAt >= since - 100) return 'ready';
+      if (firstSegment(r?.path) === u.toLowerCase() && r.instance && r.instance !== before) return 'ready';
     } catch (e) {} // content script not loaded yet
     await sleep(500);
   }
@@ -253,10 +260,11 @@ async function unfollowOne(p) {
   let res = { status: 'error' };
   for (let attempt = 0; attempt < 2 && !run.stop; attempt++) {
     if (attempt) await sleep(3000);
-    const since = Date.now();
+    const { previewTabId } = await chrome.storage.session.get('previewTabId');
+    const before = previewTabId ? await pageInstance(previewTabId) : null;
     const tabId = await openPreview(p.link);
     wantedUrl = p.link;
-    const ready = await waitForProfile(tabId, p.u, since);
+    const ready = await waitForProfile(tabId, p.u, before);
     if (ready === 'logged-out') return { status: 'logged-out' };
     if (ready !== 'ready') { res = { status: 'error', detail: 'timeout' }; continue; }
     await sleep(1500); // let instagram.com hydrate the page before clicking

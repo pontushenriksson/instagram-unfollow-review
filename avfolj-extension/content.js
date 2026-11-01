@@ -7,6 +7,8 @@ const BLOCKED = /(try again later|we restrict certain activity|försök igen sen
 const MISSING = /(this page isn't available|sidan är inte tillgänglig)/i;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// New for every page load, so the app can tell a freshly loaded profile from the page that was there before.
+const INSTANCE = Math.random().toString(36).slice(2);
 const text = el => (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
 const profileName = () => (location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
 
@@ -114,8 +116,7 @@ async function whoami() {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'ping') {
-    // loadedAt lets the app tell a freshly loaded profile from the page that was there before it navigated.
-    sendResponse({ path: location.pathname, loadedAt: performance.timeOrigin });
+    sendResponse({ path: location.pathname, instance: INSTANCE });
   } else if (msg?.type === 'whoami' || msg?.type === 'api') {
     (msg.type === 'whoami' ? whoami() : api(String(msg.path || ''))).then(sendResponse, e => sendResponse({ ok: false, status: 0, error: e.message }));
     return true;
